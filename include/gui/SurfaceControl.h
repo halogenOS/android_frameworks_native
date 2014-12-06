@@ -99,6 +99,10 @@ public:
     status_t getLayerFrameStats(FrameStats* outStats) const;
 
     status_t getTransformToDisplayInverse(bool* outTransformToDisplayInverse) const;
+    status_t    setBlur(float blur = 0);
+    status_t    setBlurMaskSurface(const sp<SurfaceControl>& maskSurface);
+    status_t    setBlurMaskSampling(uint32_t blurMaskSampling);
+    status_t    setBlurMaskAlphaThreshold(float alpha);
 
 private:
     // can't be copied
