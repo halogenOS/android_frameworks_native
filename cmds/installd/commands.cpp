@@ -844,6 +844,11 @@ static void run_dex2oat(int zip_fd, int oat_fd, const char* input_file_name,
     bool have_dex2oat_swap_fd = false;
     char dex2oat_swap_fd[strlen("--swap-fd=") + MAX_INT_LEN];
 
+    char dex2oat_thread_count[PROPERTY_VALUE_MAX];
+    char dex2oat_thread_count_arg[PROPERTY_VALUE_MAX];
+    bool have_dex2oat_thread_count = property_get("ro.sys.fw.dex2oat_thread_count", dex2oat_thread_count, NULL) > 0;
+    int cpucores = sysconf(_SC_NPROCESSORS_CONF);
+
     sprintf(zip_fd_arg, "--zip-fd=%d", zip_fd);
     sprintf(zip_location_arg, "--zip-location=%s", input_file_name);
     sprintf(oat_fd_arg, "--oat-fd=%d", oat_fd);
@@ -892,6 +897,21 @@ static void run_dex2oat(int zip_fd, int oat_fd, const char* input_file_name,
         have_dex2oat_compiler_filter_flag = true;
     } else if (have_dex2oat_compiler_filter_flag) {
         sprintf(dex2oat_compiler_filter_arg, "--compiler-filter=%s", dex2oat_compiler_filter_flag);
+    }
+    
+    have_dex2oat_thread_count = true;
+    switch (cpucores) {
+        case  2: strcpy(dex2oat_thread_count,  "3"); break;
+        case  4: strcpy(dex2oat_thread_count,  "5"); break;
+        case  8: strcpy(dex2oat_thread_count,  "9"); break;
+        case 16: strcpy(dex2oat_thread_count, "17"); break;
+        default: 
+            have_dex2oat_thread_count = false;
+            break;
+    }
+    
+    if (have_dex2oat_thread_count) {
+        snprintf(dex2oat_thread_count_arg, PROPERTY_VALUE_MAX, "-j%s", dex2oat_thread_count);
     }
 
     // Check whether all apps should be compiled debuggable.
