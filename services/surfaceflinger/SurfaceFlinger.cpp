@@ -152,7 +152,9 @@ SurfaceFlinger::SurfaceFlinger()
         mPrimaryDispSync("PrimaryDispSync"),
         mPrimaryHWVsyncEnabled(false),
         mHWVsyncAvailable(false),
+        mDaltonize(false),
         mHasColorMatrix(false),
+        mHasSecondaryColorMatrix(false),
         mHasPoweredOff(false),
         mFrameBuckets(),
         mTotalTime(0),
@@ -1319,7 +1321,8 @@ void SurfaceFlinger::setUpHWComposer() {
                     }
 
                     layer->setGeometry(displayDevice);
-                    if (mDebugDisableHWC || mDebugRegion) {
+                    if (mDebugDisableHWC || mDebugRegion || mDaltonize ||
+                            mHasColorMatrix || mHasSecondaryColorMatrix) {
                         layer->forceClientComposition(hwcId);
                     }
                 }
@@ -2032,7 +2035,21 @@ void SurfaceFlinger::doDisplayComposition(const sp<const DisplayDevice>& hw,
         }
     }
 
-    if (!doComposeSurfaces(hw, dirtyRegion)) return;
+    if (CC_LIKELY(!mDaltonize && !mHasColorMatrix && !mHasSecondaryColorMatrix)) {
+        if (!doComposeSurfaces(hw, dirtyRegion)) return;
+    } else {
+        RenderEngine& engine(getRenderEngine());
+        mat4 colorMatrix = mColorMatrix;
+        if (mHasSecondaryColorMatrix) {
+            colorMatrix = mHasColorMatrix ? (colorMatrix * mSecondaryColorMatrix) : mSecondaryColorMatrix;
+        }
+        if (mDaltonize) {
+            colorMatrix = colorMatrix * mDaltonizer();
+        }
+        mat4 oldMatrix = engine.setupColorTransform(colorMatrix);
+        doComposeSurfaces(hw, dirtyRegion);
+        engine.setupColorTransform(oldMatrix);
+    }
 
     // update the swap region and clear the dirty region
     hw->swapRegion.orSelf(dirtyRegion);
@@ -3085,7 +3102,8 @@ void SurfaceFlinger::dumpAllLocked(const Vector<String16>& args, size_t& index,
     colorizer.bold(result);
     result.append("h/w composer state:\n");
     colorizer.reset(result);
-    bool hwcDisabled = mDebugDisableHWC || mDebugRegion;
+    bool hwcDisabled = mDebugDisableHWC || mDebugRegion || mDaltonize ||
+            mHasColorMatrix || mHasSecondaryColorMatrix;
     result.appendFormat("  h/w composer %s\n",
             hwcDisabled ? "disabled" : "enabled");
     hwc.dump(result);
@@ -3308,6 +3326,28 @@ status_t SurfaceFlinger::onTransact(
                 mUseHwcVirtualDisplays = !n;
                 return NO_ERROR;
             }
+            case 1030: {
+                // apply a secondary color matrix
+                // this will be combined with any other transformations
+                n = data.readInt32();
+                mHasSecondaryColorMatrix = n ? 1 : 0;
+                if (n) {
+                    // color matrix is sent as mat3 matrix followed by vec3
+                    // offset, then packed into a mat4 where the last row is
+                    // the offset and extra values are 0
+                    for (size_t i = 0 ; i < 4; i++) {
+                      for (size_t j = 0; j < 4; j++) {
+                          mSecondaryColorMatrix[i][j] = data.readFloat();
+                      }
+                    }
+                } else {
+                    mSecondaryColorMatrix = mat4();
+                }
+                invalidateHwcGeometry();
+                repaintEverything();
+                return NO_ERROR;
+            }
+
         }
     }
     return err;
