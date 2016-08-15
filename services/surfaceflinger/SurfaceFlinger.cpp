@@ -297,17 +297,17 @@ void SurfaceFlinger::bootFinished()
     ALOGI("Boot is finished (%ld ms)", long(ns2ms(duration)) );
     mBootFinished = true;
 
+    // stop boot animation
+    // formerly we would just kill the process, but we now ask it to exit so it
+    // can choose where to stop the animation.
+    property_set("service.bootanim.exit", "1");
+
     // wait patiently for the window manager death
     const String16 name("window");
     sp<IBinder> window(defaultServiceManager()->getService(name));
     if (window != 0) {
         window->linkToDeath(static_cast<IBinder::DeathRecipient*>(this));
     }
-
-    // stop boot animation
-    // formerly we would just kill the process, but we now ask it to exit so it
-    // can choose where to stop the animation.
-    property_set("service.bootanim.exit", "1");
 }
 
 void SurfaceFlinger::deleteTextureAsync(uint32_t texture) {
