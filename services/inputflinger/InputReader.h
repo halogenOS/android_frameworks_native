@@ -250,8 +250,8 @@ struct InputReaderConfiguration {
             pointerGestureSwipeMaxWidthRatio(0.25f),
             pointerGestureMovementSpeedRatio(0.8f),
             pointerGestureZoomSpeedRatio(0.3f),
-            stylusPalmRejectionTime(50 * 10000000LL), // 50 ms
-            showTouches(false) { }
+            showTouches(false),
+            stylusPalmRejectionTime(50 * 10000000LL) { } // 50 ms
 
     bool getDisplayInfo(bool external, DisplayViewport* outViewport) const;
     void setDisplayInfo(bool external, const DisplayViewport& viewport);
