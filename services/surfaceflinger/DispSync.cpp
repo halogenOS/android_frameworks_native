@@ -107,15 +107,14 @@ public:
             { // Scope for lock
                 Mutex::Autolock lock(mMutex);
 
-                if (kTraceDetailedInfo) {
+                if (kTraceDetailedInfo)
                     ATRACE_INT64("DispSync:Frame", mFrameNumber);
-                }
+
                 ALOGV("[%s] Frame %" PRId64, mName, mFrameNumber);
                 ++mFrameNumber;
 
-                if (mStop) {
+                if (mStop)
                     return false;
-                }
 
                 if (mPeriod == 0) {
                     err = mCond.wait(mMutex);
@@ -170,9 +169,9 @@ public:
                 callbackInvocations = gatherCallbackInvocationsLocked(now);
             }
 
-            if (callbackInvocations.size() > 0) {
+            if (callbackInvocations.size() > 0)
                 fireCallbackInvocations(callbackInvocations);
-            }
+
         }
 
         return false;

@@ -237,13 +237,11 @@ void DisplayDevice::flip(const Region& dirty) const
 {
     mFlinger->getRenderEngine().checkErrors();
 
-    if (kEGLAndroidSwapRectangle) {
-        if (mFlags & SWAP_RECTANGLE) {
-            const Region newDirty(dirty.intersect(bounds()));
-            const Rect b(newDirty.getBounds());
-            eglSetSwapRectangleANDROID(mDisplay, mSurface,
-                    b.left, b.top, b.width(), b.height());
-        }
+    if (kEGLAndroidSwapRectangle && (mFlags & SWAP_RECTANGLE)) {
+        const Region newDirty(dirty.intersect(bounds()));
+        const Rect b(newDirty.getBounds());
+        eglSetSwapRectangleANDROID(mDisplay, mSurface,
+                b.left, b.top, b.width(), b.height());
     }
 
     mPageFlipCount++;
@@ -267,8 +265,6 @@ status_t DisplayDevice::prepareFrame(HWComposer& hwc) {
         compositionType = DisplaySurface::COMPOSITION_MIXED;
     } else if (hasClient) {
         compositionType = DisplaySurface::COMPOSITION_GLES;
-    } else if (hasDevice) {
-        compositionType = DisplaySurface::COMPOSITION_HWC;
     } else {
         // Nothing to do -- when turning the screen off we get a frame like
         // this. Call it a HWC frame since we won't be doing any GLES work but
@@ -286,8 +282,6 @@ status_t DisplayDevice::prepareFrame(const HWComposer& hwc) const {
         compositionType = DisplaySurface::COMPOSITION_MIXED;
     } else if (haveGles) {
         compositionType = DisplaySurface::COMPOSITION_GLES;
-    } else if (haveHwc) {
-        compositionType = DisplaySurface::COMPOSITION_HWC;
     } else {
         // Nothing to do -- when turning the screen off we get a frame like
         // this. Call it a HWC frame since we won't be doing any GLES work but
@@ -478,20 +472,20 @@ status_t DisplayDevice::orientationToTransfrom(
     }
 
     switch (orientation) {
-    case DisplayState::eOrientationDefault:
-        flags = Transform::ROT_0;
-        break;
-    case DisplayState::eOrientation90:
-        flags = Transform::ROT_90;
-        break;
-    case DisplayState::eOrientation180:
-        flags = Transform::ROT_180;
-        break;
-    case DisplayState::eOrientation270:
-        flags = Transform::ROT_270;
-        break;
-    default:
-        return BAD_VALUE;
+        case DisplayState::eOrientationDefault:
+            flags = Transform::ROT_0;
+            break;
+        case DisplayState::eOrientation90:
+            flags = Transform::ROT_90;
+            break;
+        case DisplayState::eOrientation180:
+            flags = Transform::ROT_180;
+            break;
+        case DisplayState::eOrientation270:
+            flags = Transform::ROT_270;
+            break;
+        default:
+            return BAD_VALUE;
     }
 
     if (DISPLAY_PRIMARY == mHwcDisplayId) {
