@@ -35,18 +35,15 @@ const String16 sAccessSurfaceFlinger("android.permission.ACCESS_SURFACE_FLINGER"
 // ---------------------------------------------------------------------------
 
 Client::Client(const sp<SurfaceFlinger>& flinger)
-    : mFlinger(flinger)
-{
+    : mFlinger(flinger) {
 }
 
-Client::~Client()
-{
+Client::~Client() {
     const size_t count = mLayers.size();
-    for (size_t i=0 ; i<count ; i++) {
+    for (size_t i = 0; i < count; i++) {
         sp<Layer> layer(mLayers.valueAt(i).promote());
-        if (layer != 0) {
+        if (layer != 0)
             mFlinger->removeLayer(layer);
-        }
     }
 }
 
@@ -65,13 +62,14 @@ void Client::detachLayer(const Layer* layer)
     Mutex::Autolock _l(mLock);
     // we do a linear search here, because this doesn't happen often
     const size_t count = mLayers.size();
-    for (size_t i=0 ; i<count ; i++) {
+    for (size_t i = 0; i < count; i++) {
         if (mLayers.valueAt(i) == layer) {
             mLayers.removeItemsAt(i, 1);
             break;
         }
     }
 }
+
 sp<Layer> Client::getLayerUser(const sp<IBinder>& handle) const
 {
     Mutex::Autolock _l(mLock);

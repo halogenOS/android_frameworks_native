@@ -177,7 +177,6 @@ bool DisplayUtils::canAllocateHwcDisplayIdForVDS(int usage) {
     // on AOSP builds with QTI_BSP disabled, we should allocate hwc display id for virtual display
     int flag_mask = 0xffffffff;
     char value[PROPERTY_VALUE_MAX];
-    property_get("debug.vds.allow_hwc", value, "0");
     int allowHwcForVDS = atoi(value);
 
 #ifdef QTI_BSP
