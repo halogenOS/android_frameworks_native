@@ -35,7 +35,7 @@ LOCAL_SHARED_LIBRARIES := \
 # TODO: Move inputflinger to its own process and mark it hidden
 #LOCAL_CFLAGS += -fvisibility=hidden
 
-LOCAL_CFLAGS += -Wno-unused-parameter
+LOCAL_CFLAGS += -Wno-unused-parameter -O3
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
@@ -56,6 +56,8 @@ LOCAL_SHARED_LIBRARIES := \
 	libbinder \
 	libinputflingerhost \
 	libutils
+
+LOCAL_CFLAGS += -O3
 
 LOCAL_MODULE := inputflinger
 LOCAL_INIT_RC := inputflinger.rc
