@@ -75,6 +75,10 @@ else
     LOCAL_SRC_FILES += \
         SurfaceFlinger_hwc1.cpp \
         DisplayHardware/HWComposer_hwc1.cpp
+
+    ifeq ($(OMAP_ENHANCEMENT),true)
+        LOCAL_CFLAGS += -DOMAP_ENHANCEMENT
+    endif
 endif
 
 ifneq ($(MAX_VIRTUAL_DISPLAY_DIMENSION),)
