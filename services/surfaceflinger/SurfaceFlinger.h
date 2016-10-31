@@ -172,7 +172,11 @@ private:
      * Internal data structures
      */
 
+#ifdef LEGACY_NEEDS_PUBLIC_LAYERVECTOR
+    public: class LayerVector : public SortedVector< sp<Layer> > {
+#else
     class LayerVector : public SortedVector< sp<Layer> > {
+#endif
     public:
         LayerVector();
         LayerVector(const LayerVector& rhs);
