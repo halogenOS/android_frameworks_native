@@ -41,6 +41,7 @@ LOCAL_SHARED_LIBRARIES := \
 #LOCAL_CFLAGS += -fvisibility=hidden
 
 LOCAL_CFLAGS += -Wno-unused-parameter -O3
+LOCAL_CPPFLAGS += -O3
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 
