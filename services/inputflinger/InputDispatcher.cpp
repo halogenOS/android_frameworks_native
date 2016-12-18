@@ -2789,9 +2789,11 @@ void InputDispatcher::setInjectionResultLocked(EventEntry* entry, int32_t inject
                 && !(entry->policyFlags & POLICY_FLAG_FILTERED)) {
             // Log the outcome since the injector did not wait for the injection result.
             switch (injectionResult) {
+#ifdef DEBUG_INJECTION
             case INPUT_EVENT_INJECTION_SUCCEEDED:
                 ALOGV("Asynchronous input event injection succeeded.");
                 break;
+#endif
             case INPUT_EVENT_INJECTION_FAILED:
                 ALOGW("Asynchronous input event injection failed.");
                 break;
