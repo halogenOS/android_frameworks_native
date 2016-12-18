@@ -2783,8 +2783,6 @@ void InputDispatcher::setInjectionResultLocked(EventEntry* entry, int32_t inject
         ALOGD("Setting input event injection result to %d.  "
                 "injectorPid=%d, injectorUid=%d",
                  injectionResult, injectionState->injectorPid, injectionState->injectorUid);
-#endif
-
         if (injectionState->injectionIsAsync
                 && !(entry->policyFlags & POLICY_FLAG_FILTERED)) {
             // Log the outcome since the injector did not wait for the injection result.
@@ -2803,7 +2801,7 @@ void InputDispatcher::setInjectionResultLocked(EventEntry* entry, int32_t inject
                 break;
             }
         }
-
+#endif
         injectionState->injectionResult = injectionResult;
         mInjectionResultAvailableCondition.broadcast();
     }
