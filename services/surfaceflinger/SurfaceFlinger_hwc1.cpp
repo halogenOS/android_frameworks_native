@@ -1270,14 +1270,14 @@ void SurfaceFlinger::setUpHWComposer() {
         // - When a display is created with a private layer stack, we won't
         //   emit any black frames until a layer is added to the layer stack.
         bool mustRecompose = dirty && !(empty && wasEmpty);
-
+#ifdef SUPERVERBOSE
         ALOGV_IF(mDisplays[dpy]->getDisplayType() == DisplayDevice::DISPLAY_VIRTUAL,
                 "dpy[%zu]: %s composition (%sdirty %sempty %swasEmpty)", dpy,
                 mustRecompose ? "doing" : "skipping",
                 dirty ? "+" : "-",
                 empty ? "+" : "-",
                 wasEmpty ? "+" : "-");
-
+#endif
         mDisplays[dpy]->beginFrame(mustRecompose);
 
         if (mustRecompose) {
@@ -2437,17 +2437,22 @@ uint32_t SurfaceFlinger::setClientStateLocked(
             }
         }
         if (what & layer_state_t::eBlurChanged) {
+#ifdef SUPERVERBOSE
             ALOGV("eBlurChanged");
+#endif
             if (layer->setBlur(uint8_t(255.0f*s.blur+0.5f))) {
                 flags |= eTraversalNeeded;
             }
         }
         if (what & layer_state_t::eBlurMaskSurfaceChanged) {
+#ifdef SUPERVERBOSE
             ALOGV("eBlurMaskSurfaceChanged");
+#endif
             sp<Layer> maskLayer = 0;
             if (s.blurMaskSurface != 0) {
                 maskLayer = client->getLayerUser(s.blurMaskSurface);
             }
+#ifdef SUPERVERBOSE
             if (maskLayer == 0) {
                 ALOGV("eBlurMaskSurfaceChanged. maskLayer == 0");
             } else {
@@ -2457,6 +2462,12 @@ uint32_t SurfaceFlinger::setClientStateLocked(
                     maskLayer = 0;
                 }
             }
+#else
+            if(maskLayer != 0 && maskLayer->isBlurLayer()) {
+                ALOGE("Blur layer can not be used as blur mask surface");
+                maskLayer = 0;
+            }
+#endif
             if (layer->setBlurMaskLayer(maskLayer)) {
                 flags |= eTraversalNeeded;
             }
@@ -2535,7 +2546,6 @@ status_t SurfaceFlinger::createLayer(
         uint32_t w, uint32_t h, PixelFormat format, uint32_t flags,
         sp<IBinder>* handle, sp<IGraphicBufferProducer>* gbp)
 {
-    //ALOGD("createLayer for (%d x %d), name=%s", w, h, name.string());
     if (int32_t(w|h) < 0) {
         ALOGE("createLayer() failed, w or h is negative (w=%d, h=%d)",
                 int(w), int(h));

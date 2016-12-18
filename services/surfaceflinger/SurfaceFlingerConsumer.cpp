@@ -37,7 +37,9 @@ status_t SurfaceFlingerConsumer::updateTexImage(BufferRejecter* rejecter,
         uint64_t maxFrameNumber)
 {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("updateTexImage");
+#endif
     Mutex::Autolock lock(mMutex);
 
     if (mAbandoned) {
@@ -213,7 +215,9 @@ void SurfaceFlingerConsumer::releasePendingBuffer()
         ALOGV("Pending buffer already released");
         return;
     }
+#ifdef SUPERVERBOSE
     ALOGV("Releasing pending buffer");
+#endif
     Mutex::Autolock lock(mMutex);
     status_t result = releaseBufferLocked(mPendingRelease.currentTexture,
             mPendingRelease.graphicBuffer, mPendingRelease.display,

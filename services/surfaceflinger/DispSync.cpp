@@ -82,9 +82,11 @@ public:
         mPeriod = period;
         mPhase = phase;
         mReferenceTime = referenceTime;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] updateModel: mPeriod = %" PRId64 ", mPhase = %" PRId64
                 " mReferenceTime = %" PRId64, mName, ns2us(mPeriod),
                 ns2us(mPhase), ns2us(mReferenceTime));
+#endif
         mCond.signal();
     }
 
@@ -109,8 +111,9 @@ public:
 
                 if (kTraceDetailedInfo)
                     ATRACE_INT64("DispSync:Frame", mFrameNumber);
-
+#ifdef SUPERVERBOSE
                 ALOGV("[%s] Frame %" PRId64, mName, mFrameNumber);
+#endif
                 ++mFrameNumber;
 
                 if (mStop)
@@ -134,11 +137,15 @@ public:
                     if (kTraceDetailedInfo) ATRACE_NAME("DispSync waiting");
 
                     if (targetTime == INT64_MAX) {
+#ifdef SUPERVERBOSE
                         ALOGV("[%s] Waiting forever", mName);
+#endif
                         err = mCond.wait(mMutex);
                     } else {
+#ifdef SUPERVERBOSE
                         ALOGV("[%s] Waiting until %" PRId64, mName,
                                 ns2us(targetTime));
+#endif
                         err = mCond.waitRelative(mMutex, targetTime - now);
                     }
 
@@ -243,7 +250,9 @@ private:
 
     nsecs_t computeNextEventTimeLocked(nsecs_t now) {
         if (kTraceDetailedInfo) ATRACE_CALL();
+#ifdef SUPERVERBOSE
         ALOGV("[%s] computeNextEventTimeLocked", mName);
+#endif
         nsecs_t nextEventTime = INT64_MAX;
         for (size_t i = 0; i < mEventListeners.size(); i++) {
             nsecs_t t = computeListenerNextEventTimeLocked(mEventListeners[i],
@@ -253,16 +262,18 @@ private:
                 nextEventTime = t;
             }
         }
-
+#ifdef SUPERVERBOSE
         ALOGV("[%s] nextEventTime = %" PRId64, mName, ns2us(nextEventTime));
+#endif
         return nextEventTime;
     }
 
     Vector<CallbackInvocation> gatherCallbackInvocationsLocked(nsecs_t now) {
         if (kTraceDetailedInfo) ATRACE_CALL();
+#ifdef SUPERVERBOSE
         ALOGV("[%s] gatherCallbackInvocationsLocked @ %" PRId64, mName,
                 ns2us(now));
-
+#endif
         Vector<CallbackInvocation> callbackInvocations;
         nsecs_t onePeriodAgo = now - mPeriod;
 
@@ -287,23 +298,34 @@ private:
     nsecs_t computeListenerNextEventTimeLocked(const EventListener& listener,
             nsecs_t baseTime) {
         if (kTraceDetailedInfo) ATRACE_CALL();
+#ifdef SUPERVERBOSE
         ALOGV("[%s] [%s] computeListenerNextEventTimeLocked(%" PRId64 ")",
                 mName, listener.mName, ns2us(baseTime));
-
+#endif
         nsecs_t lastEventTime = listener.mLastEventTime + mWakeupLatency;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] lastEventTime: %" PRId64, mName, ns2us(lastEventTime));
+#endif
         if (baseTime < lastEventTime) {
             baseTime = lastEventTime;
+#ifdef SUPERVERBOSE
             ALOGV("[%s] Clamping baseTime to lastEventTime -> %" PRId64, mName,
                     ns2us(baseTime));
+#endif
         }
 
         baseTime -= mReferenceTime;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Relative baseTime = %" PRId64, mName, ns2us(baseTime));
+#endif
         nsecs_t phase = mPhase + listener.mPhase;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Phase = %" PRId64, mName, ns2us(phase));
+#endif
         baseTime -= phase;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] baseTime - phase = %" PRId64, mName, ns2us(baseTime));
+#endif
 
         // If our previous time is before the reference (because the reference
         // has since been updated), the division by mPeriod will truncate
@@ -313,27 +335,38 @@ private:
         // When we add 1 and the phase, we will be at the correct event time for
         // this period.
         if (baseTime < 0) {
+#ifdef SUPERVERBOSE
             ALOGV("[%s] Correcting negative baseTime", mName);
+#endif
             baseTime = -mPeriod;
         }
 
         nsecs_t numPeriods = baseTime / mPeriod;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] numPeriods = %" PRId64, mName, numPeriods);
+#endif
         nsecs_t t = (numPeriods + 1) * mPeriod + phase;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] t = %" PRId64, mName, ns2us(t));
+#endif
         t += mReferenceTime;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Absolute t = %" PRId64, mName, ns2us(t));
+#endif
 
         // Check that it's been slightly more than half a period since the last
         // event so that we don't accidentally fall into double-rate vsyncs
         if (t - listener.mLastEventTime < (3 * mPeriod / 5)) {
             t += mPeriod;
+#ifdef SUPERVERBOSE
             ALOGV("[%s] Modifying t -> %" PRId64, mName, ns2us(t));
+#endif
         }
 
         t -= mWakeupLatency;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Corrected for wakeup latency -> %" PRId64, mName, ns2us(t));
-
+#endif
         return t;
     }
 
@@ -381,7 +414,9 @@ DispSync::DispSync(const char* name) :
         mName(name),
         mRefreshSkipCount(0),
         mThread(new DispSyncThread(name)) {
-
+#ifndef SUPERVERBOSE
+    (void)mName;
+#endif
     mThread->run("DispSync", PRIORITY_URGENT_DISPLAY + PRIORITY_MORE_FAVORABLE);
     // set DispSync to SCHED_FIFO to minimize jitter
     struct sched_param param = {0};
@@ -447,24 +482,28 @@ bool DispSync::addPresentFence(const sp<Fence>& fence) {
 
 void DispSync::beginResync() {
     Mutex::Autolock lock(mMutex);
+#ifdef SUPERVERBOSE
     ALOGV("[%s] beginResync", mName);
+#endif
     mModelUpdated = false;
     mNumResyncSamples = 0;
 }
 
 bool DispSync::addResyncSample(nsecs_t timestamp) {
     Mutex::Autolock lock(mMutex);
-
+#ifdef SUPERVERBOSE
     ALOGV("[%s] addResyncSample(%" PRId64 ")", mName, ns2us(timestamp));
-
+#endif
     size_t idx = (mFirstResyncSample + mNumResyncSamples) % MAX_RESYNC_SAMPLES;
     mResyncSamples[idx] = timestamp;
     if (mNumResyncSamples == 0) {
         mPhase = 0;
         mReferenceTime = timestamp;
+#ifdef SUPERVERBOSE
         ALOGV("[%s] First resync sample: mPeriod = %" PRId64 ", mPhase = 0, "
                 "mReferenceTime = %" PRId64, mName, ns2us(mPeriod),
                 ns2us(mReferenceTime));
+#endif
         mThread->updateModel(mPeriod, mPhase, mReferenceTime);
     }
 
@@ -492,8 +531,10 @@ bool DispSync::addResyncSample(nsecs_t timestamp) {
     // Check against kErrorThreshold / 2 to add some hysteresis before having to
     // resync again
     bool modelLocked = mModelUpdated && mError < (kErrorThreshold / 2);
+#ifdef SUPERVERBOSE
     ALOGV("[%s] addResyncSample returning %s", mName,
             modelLocked ? "locked" : "unlocked");
+#endif
     return !modelLocked;
 }
 
@@ -508,7 +549,9 @@ status_t DispSync::addEventListener(const char* name, nsecs_t phase,
 
 void DispSync::setRefreshSkipCount(int count) {
     Mutex::Autolock lock(mMutex);
+#ifdef SUPERVERBOSE
     ALOGD("setRefreshSkipCount(%d)", count);
+#endif
     mRefreshSkipCount = count;
     updateModelLocked();
 }
@@ -533,9 +576,13 @@ nsecs_t DispSync::getPeriod() {
 }
 
 void DispSync::updateModelLocked() {
+#ifdef SUPERVERBOSE
     ALOGV("[%s] updateModelLocked %zu", mName, mNumResyncSamples);
+#endif
     if (mNumResyncSamples >= MIN_RESYNC_SAMPLES_FOR_UPDATE) {
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Computing...", mName);
+#endif
         nsecs_t durationSum = 0;
         nsecs_t minDuration = INT64_MAX;
         nsecs_t maxDuration = 0;
@@ -551,9 +598,9 @@ void DispSync::updateModelLocked() {
         // Exclude the min and max from the average
         durationSum -= minDuration + maxDuration;
         mPeriod = durationSum / (mNumResyncSamples - 3);
-
+#ifdef SUPERVERBOSE
         ALOGV("[%s] mPeriod = %" PRId64, mName, ns2us(mPeriod));
-
+#endif
         double sampleAvgX = 0;
         double sampleAvgY = 0;
         double scale = 2.0 * M_PI / double(mPeriod);
@@ -570,12 +617,14 @@ void DispSync::updateModelLocked() {
         sampleAvgY /= double(mNumResyncSamples - 1);
 
         mPhase = nsecs_t(atan2(sampleAvgY, sampleAvgX) / scale);
-
+#ifdef SUPERVERBOSE
         ALOGV("[%s] mPhase = %" PRId64, mName, ns2us(mPhase));
-
+#endif
         if (mPhase < -(mPeriod / 2)) {
             mPhase += mPeriod;
+#ifdef SUPERVERBOSE
             ALOGV("[%s] Adjusting mPhase -> %" PRId64, mName, ns2us(mPhase));
+#endif
         }
 
         if (kTraceDetailedInfo) {

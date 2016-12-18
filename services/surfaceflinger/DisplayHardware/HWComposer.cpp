@@ -107,8 +107,9 @@ void HWComposer::setEventHandler(EventHandler* handler)
 // Load and prepare the hardware composer module.  Sets mHwc.
 void HWComposer::loadHwcModule()
 {
+#ifdef SUPERVERBOSE
     ALOGV("loadHwcModule");
-
+#endif
     hw_module_t const* module;
 
     if (hw_get_module(HWC_HARDWARE_MODULE_ID, &module) != 0) {
@@ -181,8 +182,10 @@ void HWComposer::validateChange(HWC2::Composition from, HWC2::Composition to) {
 
 void HWComposer::hotplug(const std::shared_ptr<HWC2::Display>& display,
         HWC2::Connection connected) {
+#ifdef SUPERVERBOSE
     ALOGV("hotplug: %" PRIu64 ", %s", display->getId(),
             to_string(connected).c_str());
+#endif
     int32_t disp = 0;
     if (!mDisplayData[0].hwcDisplay) {
         ALOGE_IF(connected != HWC2::Connection::Connected, "Assumed primary"
@@ -445,8 +448,9 @@ status_t HWComposer::setClientTarget(int32_t displayId,
     if (!isValidDisplay(displayId)) {
         return BAD_INDEX;
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("setClientTarget for display %d", displayId);
+#endif
     auto& hwcDisplay = mDisplayData[displayId].hwcDisplay;
     buffer_handle_t handle = nullptr;
     if ((target != nullptr) && target->getNativeBuffer()) {
@@ -662,7 +666,9 @@ status_t HWComposer::setPowerMode(int32_t displayId, int32_t intMode) {
     switch (mode) {
         case HWC2::PowerMode::Off:
         case HWC2::PowerMode::On:
+#ifdef SUPERVERBOSE
             ALOGV("setPowerMode: Calling HWC %s", to_string(mode).c_str());
+#endif
             {
                 auto error = hwcDisplay->setPowerMode(mode);
                 if (error != HWC2::Error::None) {
@@ -675,7 +681,9 @@ status_t HWComposer::setPowerMode(int32_t displayId, int32_t intMode) {
             break;
         case HWC2::PowerMode::Doze:
         case HWC2::PowerMode::DozeSuspend:
+#ifdef SUPERVERBOSE
             ALOGV("setPowerMode: Calling HWC %s", to_string(mode).c_str());
+#endif
             {
                 bool supportsDoze = false;
                 auto error = hwcDisplay->supportsDoze(&supportsDoze);
@@ -699,7 +707,9 @@ status_t HWComposer::setPowerMode(int32_t displayId, int32_t intMode) {
             }
             break;
         default:
+#ifdef SUPERVERBOSE
             ALOGV("setPowerMode: Not calling HWC");
+#endif
             break;
     }
 
@@ -873,14 +883,18 @@ HWComposer::DisplayData::DisplayData()
     outbufHandle(nullptr),
     outbufAcquireFence(Fence::NO_FENCE),
     vsyncEnabled(HWC2::Vsync::Disable) {
+#ifdef SUPERVERBOSE
     ALOGV("Created new DisplayData");
+#endif
 }
 
 HWComposer::DisplayData::~DisplayData() {
 }
 
 void HWComposer::DisplayData::reset() {
+#ifdef SUPERVERBOSE
     ALOGV("DisplayData reset");
+#endif
     *this = DisplayData();
 }
 

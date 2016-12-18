@@ -112,7 +112,9 @@ Layer::Layer(SurfaceFlinger* flinger, const sp<Client>& client,
         mTransformHint(0)
 {
 #ifdef USE_HWC2
+#ifdef SUPERVERBOSE
     ALOGV("Creating Layer %s", name.string());
+#endif
 #endif
 
     mCurrentCrop.makeInvalid();
@@ -735,7 +737,9 @@ void Layer::setPerFrameData(const sp<const DisplayDevice>& displayDevice) {
     // Sideband layers
     if (mSidebandStream.get()) {
         setCompositionType(hwcId, HWC2::Composition::Sideband);
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Requesting Sideband composition", mName.string());
+#endif
         error = hwcLayer->setSidebandStream(mSidebandStream->handle());
         if (error != HWC2::Error::None) {
             ALOGE("[%s] Failed to set sideband stream %p: %s (%d)",
@@ -748,7 +752,9 @@ void Layer::setPerFrameData(const sp<const DisplayDevice>& displayDevice) {
     // Client layers
     if (mHwcLayers[hwcId].forceClientComposition ||
             (mActiveBuffer != nullptr && mActiveBuffer->handle == nullptr)) {
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Requesting Client composition", mName.string());
+#endif
         setCompositionType(hwcId, HWC2::Composition::Client);
         return;
     }
@@ -777,10 +783,14 @@ void Layer::setPerFrameData(const sp<const DisplayDevice>& displayDevice) {
 
     // Device or Cursor layers
     if (mPotentialCursor) {
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Requesting Cursor composition", mName.string());
+#endif
         setCompositionType(hwcId, HWC2::Composition::Cursor);
     } else {
+#ifdef SUPERVERBOSE
         ALOGV("[%s] Requesting Device composition", mName.string());
+#endif
         setCompositionType(hwcId, HWC2::Composition::Device);
     }
 
@@ -1107,10 +1117,14 @@ void Layer::setCompositionType(int32_t hwcId, HWC2::Composition type,
     }
     auto& hwcInfo = mHwcLayers[hwcId];
     auto& hwcLayer = hwcInfo.layer;
+#ifdef SUPERVERBOSE
     ALOGV("setCompositionType(%" PRIx64 ", %s, %d)", hwcLayer->getId(),
             to_string(type).c_str(), static_cast<int>(callIntoHwc));
+#endif
     if (hwcInfo.compositionType != type) {
+#ifdef SUPERVERBOSE
         ALOGV("    actually setting");
+#endif
         hwcInfo.compositionType = type;
         if (callIntoHwc) {
             auto error = hwcLayer->setCompositionType(type);
@@ -2001,7 +2015,7 @@ Region Layer::latchBuffer(bool& recomputeVisibleRegions)
                         // recompute visible region
                         recomputeVisibleRegions = true;
                     }
-
+#ifdef SUPERVERBOSE
                     ALOGD_IF(DEBUG_RESIZE,
                             "[%s] latchBuffer/reject: buffer (%ux%u, tr=%02x), scalingMode=%d\n"
                             "  drawing={ active   ={ wh={%4u,%4u} crop={%4d,%4d,%4d,%4d} (%4d,%4d) }\n"
@@ -2016,6 +2030,7 @@ Region Layer::latchBuffer(bool& recomputeVisibleRegions)
                             front.crop.getWidth(),
                             front.crop.getHeight(),
                             front.requested.w, front.requested.h);
+#endif
                 }
 
                 if (!isFixedSize && !stickyTransformSet) {

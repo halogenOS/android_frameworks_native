@@ -35,6 +35,7 @@ static const bool sForceHwcCopy = false;
         mDisplayName.string(), ##__VA_ARGS__)
 #define VDS_LOGW_IF(cond, msg, ...) ALOGW_IF(cond, "[%s] " msg, \
         mDisplayName.string(), ##__VA_ARGS__)
+#ifdef SUPERVERBOSE
 #define VDS_LOGV(msg, ...) ALOGV("[%s] " msg, \
         mDisplayName.string(), ##__VA_ARGS__)
 
@@ -47,6 +48,7 @@ static const char* dbgCompositionTypeStr(DisplaySurface::CompositionType type) {
         default:                                  return "<INVALID>";
     }
 }
+#endif
 
 VirtualDisplaySurface::VirtualDisplaySurface(HWComposer& hwc, int32_t dispId,
         const sp<IGraphicBufferProducer>& sink,
@@ -149,8 +151,10 @@ status_t VirtualDisplaySurface::prepareFrame(CompositionType compositionType) {
     }
 
     if (mCompositionType != mDbgLastCompositionType) {
+#ifdef SUPERVERBOSE
         VDS_LOGV("prepareFrame: composition type changed to %s",
                 dbgCompositionTypeStr(mCompositionType));
+#endif
         mDbgLastCompositionType = mCompositionType;
     }
 
@@ -210,10 +214,11 @@ status_t VirtualDisplaySurface::advanceFrame() {
     sp<GraphicBuffer> fbBuffer = mFbProducerSlot >= 0 ?
             mProducerBuffers[mFbProducerSlot] : sp<GraphicBuffer>(NULL);
     sp<GraphicBuffer> outBuffer = mProducerBuffers[mOutputProducerSlot];
+#ifdef SUPERVERBOSE
     VDS_LOGV("advanceFrame: fb=%d(%p) out=%d(%p)",
             mFbProducerSlot, fbBuffer.get(),
             mOutputProducerSlot, outBuffer.get());
-
+#endif
     // At this point we know the output buffer acquire fence,
     // so update HWC state with it.
     mHwc.setOutputBuffer(mDisplayId, mOutputFence, outBuffer);
@@ -249,7 +254,9 @@ void VirtualDisplaySurface::onFrameCommitted() {
         // release the scratch buffer back to the pool
         Mutex::Autolock lock(mMutex);
         int sslot = mapProducer2SourceSlot(SOURCE_SCRATCH, mFbProducerSlot);
+#ifdef SUPERVERBOSE
         VDS_LOGV("onFrameCommitted: release scratch sslot=%d", sslot);
+#endif
 #ifdef USE_HWC2
         addReleaseFenceLocked(sslot, mProducerBuffers[mFbProducerSlot],
                 retireFence);
@@ -266,7 +273,9 @@ void VirtualDisplaySurface::onFrameCommitted() {
 #ifndef USE_HWC2
         sp<Fence> outFence = mHwc.getLastRetireFence(mDisplayId);
 #endif
+#ifdef SUPERVERBOSE
         VDS_LOGV("onFrameCommitted: queue sink sslot=%d", sslot);
+#endif
         if (mMustRecompose) {
             status_t result = mSource[SOURCE_SINK]->queueBuffer(sslot,
                     QueueBufferInput(
@@ -347,8 +356,10 @@ status_t VirtualDisplaySurface::dequeueBuffer(Source source,
     // Exclude video encoder usage flag from scratch buffer usage flags
     if (source == SOURCE_SCRATCH) {
         usage &= ~(GRALLOC_USAGE_HW_VIDEO_ENCODER);
+#ifdef SUPERVERBOSE
         VDS_LOGV("dequeueBuffer(%s): updated scratch buffer usage flags=%#x",
                 dbgSourceStr(source), usage);
+#endif
     }
 
     status_t result = mSource[source]->dequeueBuffer(sslot, fence,
@@ -356,8 +367,10 @@ status_t VirtualDisplaySurface::dequeueBuffer(Source source,
     if (result < 0)
         return result;
     int pslot = mapSource2ProducerSlot(source, *sslot);
+#ifdef SUPERVERBOSE
     VDS_LOGV("dequeueBuffer(%s): sslot=%d pslot=%d result=%d",
             dbgSourceStr(source), *sslot, pslot, result);
+#endif
     uint64_t sourceBit = static_cast<uint64_t>(source) << pslot;
 
     if ((mProducerSlotSource & (1ULL << pslot)) != sourceBit) {
@@ -381,10 +394,12 @@ status_t VirtualDisplaySurface::dequeueBuffer(Source source,
             mSource[source]->cancelBuffer(*sslot, *fence);
             return result;
         }
+#ifdef SUPERVERBOSE
         VDS_LOGV("dequeueBuffer(%s): buffers[%d]=%p fmt=%d usage=%#x",
                 dbgSourceStr(source), pslot, mProducerBuffers[pslot].get(),
                 mProducerBuffers[pslot]->getPixelFormat(),
                 mProducerBuffers[pslot]->getUsage());
+#endif
     }
 
     return result;
@@ -398,9 +413,9 @@ status_t VirtualDisplaySurface::dequeueBuffer(int* pslot, sp<Fence>* fence,
     VDS_LOGW_IF(mDbgState != DBG_STATE_PREPARED,
             "Unexpected dequeueBuffer() in %s state", dbgStateStr());
     mDbgState = DBG_STATE_GLES;
-
+#ifdef SUPERVERBOSE
     VDS_LOGV("dequeueBuffer %dx%d fmt=%d usage=%#x", w, h, format, usage);
-
+#endif
     status_t result = NO_ERROR;
     Source source = fbSourceForCompositionType(mCompositionType);
 
@@ -428,12 +443,14 @@ status_t VirtualDisplaySurface::dequeueBuffer(int* pslot, sp<Fence>* fence,
                 (format != 0 && format != buf->getPixelFormat()) ||
                 (w != 0 && w != mSinkBufferWidth) ||
                 (h != 0 && h != mSinkBufferHeight)) {
+#ifdef SUPERVERBOSE
             VDS_LOGV("dequeueBuffer: dequeueing new output buffer: "
                     "want %dx%d fmt=%d use=%#x, "
                     "have %dx%d fmt=%d use=%#x",
                     w, h, format, usage,
                     mSinkBufferWidth, mSinkBufferHeight,
                     buf->getPixelFormat(), buf->getUsage());
+#endif
             mOutputFormat = format;
             setOutputUsage(usage);
             result = refreshOutputBuffer();
@@ -481,9 +498,9 @@ status_t VirtualDisplaySurface::queueBuffer(int pslot,
             "Unexpected queueBuffer(pslot=%d) in %s state", pslot,
             dbgStateStr());
     mDbgState = DBG_STATE_GLES_DONE;
-
+#ifdef SUPERVERBOSE
     VDS_LOGV("queueBuffer pslot=%d", pslot);
-
+#endif
     status_t result;
     if (mCompositionType == COMPOSITION_MIXED) {
         // Queue the buffer back into the scratch pool
@@ -537,7 +554,9 @@ status_t VirtualDisplaySurface::cancelBuffer(int pslot,
     VDS_LOGW_IF(mDbgState != DBG_STATE_GLES,
             "Unexpected cancelBuffer(pslot=%d) in %s state", pslot,
             dbgStateStr());
+#ifdef SUPERVERBOSE
     VDS_LOGV("cancelBuffer pslot=%d", pslot);
+#endif
     Source source = fbSourceForCompositionType(mCompositionType);
     return mSource[source]->cancelBuffer(
             mapProducer2SourceSlot(source, pslot), fence);

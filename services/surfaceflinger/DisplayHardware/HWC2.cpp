@@ -223,13 +223,17 @@ Error Device::createVirtualDisplay(uint32_t width, uint32_t height,
 
 void Device::registerHotplugCallback(HotplugCallback hotplug)
 {
+#ifdef SUPERVERBOSE
     ALOGV("registerHotplugCallback");
+#endif
     mHotplug = hotplug;
     for (auto& pending : mPendingHotplugs) {
         auto& display = pending.first;
         auto connected = pending.second;
+#ifdef SUPERVERBOSE
         ALOGV("Sending pending hotplug(%" PRIu64 ", %s)", display->getId(),
                 to_string(connected).c_str());
+#endif
         mHotplug(std::move(display), connected);
     }
 }
@@ -269,7 +273,9 @@ void Device::callHotplug(std::shared_ptr<Display> display, Connection connected)
     if (mHotplug) {
         mHotplug(std::move(display), connected);
     } else {
+#ifdef SUPERVERBOSE
         ALOGV("callHotplug called, but no valid callback registered, storing");
+#endif
         mPendingHotplugs.emplace_back(std::move(display), connected);
     }
 }
@@ -279,7 +285,9 @@ void Device::callRefresh(std::shared_ptr<Display> display)
     if (mRefresh) {
         mRefresh(std::move(display));
     } else {
+#ifdef SUPERVERBOSE
         ALOGV("callRefresh called, but no valid callback registered, storing");
+#endif
         mPendingRefreshes.emplace_back(std::move(display));
     }
 }
@@ -289,7 +297,9 @@ void Device::callVsync(std::shared_ptr<Display> display, nsecs_t timestamp)
     if (mVsync) {
         mVsync(std::move(display), timestamp);
     } else {
+#ifdef SUPERVERBOSE
         ALOGV("callVsync called, but no valid callback registered, storing");
+#endif
         mPendingVsyncs.emplace_back(std::move(display), timestamp);
     }
 }
@@ -456,12 +466,16 @@ Display::Display(Device& device, hwc2_display_t id)
     mIsConnected(false),
     mIsVirtual(false)
 {
+#ifdef SUPERVERBOSE
     ALOGV("Created display %" PRIu64, id);
+#endif
 }
 
 Display::~Display()
 {
+#ifdef SUPERVERBOSE
     ALOGV("Destroyed display %" PRIu64, mId);
+#endif
     if (mIsVirtual) {
         mDevice.destroyVirtualDisplay(mId);
     }
@@ -520,7 +534,9 @@ Error Display::createLayer(std::shared_ptr<Layer>* outLayer)
 Error Display::getActiveConfig(
         std::shared_ptr<const Display::Config>* outConfig) const
 {
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] getActiveConfig", mId);
+#endif
     hwc2_config_t configId = 0;
     int32_t intError = mDevice.mGetActiveConfig(mDevice.mHwcDevice, mId,
             &configId);
@@ -569,8 +585,10 @@ Error Display::getChangedCompositionTypes(
         auto layer = getLayerById(layerIds[element]);
         if (layer) {
             auto type = static_cast<Composition>(types[element]);
+#ifdef SUPERVERBOSE
             ALOGV("getChangedCompositionTypes: adding %" PRIu64 " %s",
                     layer->getId(), to_string(type).c_str());
+#endif
             outTypes->emplace(layer, type);
         } else {
             ALOGE("getChangedCompositionTypes: invalid layer %" PRIu64 " found"
@@ -883,8 +901,9 @@ int32_t Display::getAttribute(hwc2_config_t configId, Attribute attribute)
 
 void Display::loadConfig(hwc2_config_t configId)
 {
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] loadConfig(%u)", mId, configId);
-
+#endif
     auto config = Config::Builder(*this, configId)
             .setWidth(getAttribute(configId, Attribute::Width))
             .setHeight(getAttribute(configId, Attribute::Height))
@@ -897,8 +916,9 @@ void Display::loadConfig(hwc2_config_t configId)
 
 void Display::loadConfigs()
 {
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] loadConfigs", mId);
-
+#endif
     uint32_t numConfigs = 0;
     int32_t intError = mDevice.mGetDisplayConfigs(mDevice.mHwcDevice, mId,
             &numConfigs, nullptr);
@@ -956,8 +976,10 @@ Layer::Layer(const std::shared_ptr<Display>& display, hwc2_layer_t id)
     mDevice(display->getDevice()),
     mId(id)
 {
+#ifdef SUPERVERBOSE
     ALOGV("Created layer %" PRIu64 " on display %" PRIu64, id,
             display->getId());
+#endif
 }
 
 Layer::~Layer()

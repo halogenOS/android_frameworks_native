@@ -467,10 +467,10 @@ Error HWC2On1Adapter::registerCallback(Callback descriptor,
     if (!isValid(descriptor)) {
         return Error::BadParameter;
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("registerCallback(%s, %p, %p)", to_string(descriptor).c_str(),
             callbackData, pointer);
-
+#endif
     std::unique_lock<std::recursive_timed_mutex> lock(mStateMutex);
 
     mCallbacks[descriptor] = {callbackData, pointer};
@@ -575,12 +575,14 @@ Error HWC2On1Adapter::Display::acceptChanges()
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
 
     if (!mChanges) {
+#ifdef SUPERVERBOSE
         ALOGV("[%" PRIu64 "] acceptChanges failed, not validated", mId);
+#endif
         return Error::NotValidated;
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] acceptChanges", mId);
-
+#endif
     for (auto& change : mChanges->getTypeChanges()) {
         auto layerId = change.first;
         auto type = change.second;
@@ -602,7 +604,9 @@ Error HWC2On1Adapter::Display::createLayer(hwc2_layer_t* outLayerId)
     auto layer = *mLayers.emplace(std::make_shared<Layer>(*this));
     mDevice.mLayers.emplace(std::make_pair(layer->getId(), layer));
     *outLayerId = layer->getId();
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] created layer %" PRIu64, mId, *outLayerId);
+#endif
     return Error::None;
 }
 
@@ -612,8 +616,10 @@ Error HWC2On1Adapter::Display::destroyLayer(hwc2_layer_t layerId)
 
     const auto mapLayer = mDevice.mLayers.find(layerId);
     if (mapLayer == mDevice.mLayers.end()) {
+#ifdef SUPERVERBOSE
         ALOGV("[%" PRIu64 "] destroyLayer(%" PRIu64 ") failed: no such layer",
                 mId, layerId);
+#endif
         return Error::BadLayer;
     }
     const auto layer = mapLayer->second;
@@ -625,7 +631,9 @@ Error HWC2On1Adapter::Display::destroyLayer(hwc2_layer_t layerId)
             break;
         }
     }
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] destroyed layer %" PRIu64, mId, layerId);
+#endif
     return Error::None;
 }
 
@@ -634,12 +642,16 @@ Error HWC2On1Adapter::Display::getActiveConfig(hwc2_config_t* outConfig)
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
 
     if (!mActiveConfig) {
+#ifdef SUPERVERBOSE
         ALOGV("[%" PRIu64 "] getActiveConfig --> %s", mId,
                 to_string(Error::BadConfig).c_str());
+#endif
         return Error::BadConfig;
     }
     auto configId = mActiveConfig->getId();
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] getActiveConfig --> %u", mId, configId);
+#endif
     *outConfig = configId;
     return Error::None;
 }
@@ -650,13 +662,17 @@ Error HWC2On1Adapter::Display::getAttribute(hwc2_config_t configId,
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
 
     if (configId > mConfigs.size() || !mConfigs[configId]->isOnDisplay(*this)) {
+#ifdef SUPERVERBOSE
         ALOGV("[%" PRIu64 "] getAttribute failed: bad config (%u)", mId,
                 configId);
+#endif
         return Error::BadConfig;
     }
     *outValue = mConfigs[configId]->getAttribute(attribute);
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] getAttribute(%u, %s) --> %d", mId, configId,
             to_string(attribute).c_str(), *outValue);
+#endif
     return Error::None;
 }
 
@@ -683,8 +699,10 @@ Error HWC2On1Adapter::Display::getChangedCompositionTypes(
         }
         auto layerId = element.first;
         auto intType = static_cast<int32_t>(element.second);
+#ifdef SUPERVERBOSE
         ALOGV("Adding %" PRIu64 " %s", layerId,
                 to_string(element.second).c_str());
+#endif
         outLayers[numWritten] = layerId;
         outTypes[numWritten] = intType;
         ++numWritten;
@@ -842,9 +860,10 @@ Error HWC2On1Adapter::Display::present(int32_t* outRetireFence)
     }
 
     *outRetireFence = mRetireFence.get()->dup();
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] present returning retire fence %d", mId,
             *outRetireFence);
-
+#endif
     return Error::None;
 }
 
@@ -884,8 +903,9 @@ Error HWC2On1Adapter::Display::setClientTarget(buffer_handle_t target,
         int32_t acquireFence, int32_t /*dataspace*/, hwc_region_t /*damage*/)
 {
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] setClientTarget(%p, %d)", mId, target, acquireFence);
+#endif
     mClientTarget.setBuffer(target);
     mClientTarget.setFence(acquireFence);
     // dataspace and damage can't be used by HWC1, so ignore them
@@ -895,9 +915,9 @@ Error HWC2On1Adapter::Display::setClientTarget(buffer_handle_t target,
 Error HWC2On1Adapter::Display::setColorMode(android_color_mode_t mode)
 {
     std::unique_lock<std::recursive_mutex> lock (mStateMutex);
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] setColorMode(%d)", mId, mode);
-
+#endif
     if (mode == mActiveColorMode) {
         return Error::None;
     }
@@ -911,8 +931,9 @@ Error HWC2On1Adapter::Display::setColorMode(android_color_mode_t mode)
     if (error != Error::None) {
         return error;
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] Setting HWC1 config %u", mId, hwc1Config);
+#endif
     int intError = mDevice.mHwc1Device->setActiveConfig(mDevice.mHwc1Device,
             mHwc1Id, hwc1Config);
     if (intError != 0) {
@@ -927,9 +948,10 @@ Error HWC2On1Adapter::Display::setColorMode(android_color_mode_t mode)
 Error HWC2On1Adapter::Display::setColorTransform(android_color_transform_t hint)
 {
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
-
+#ifdef SUPERVERBOSE
     ALOGV("%" PRIu64 "] setColorTransform(%d)", mId,
             static_cast<int32_t>(hint));
+#endif
     mHasColorTransform = (hint != HAL_COLOR_TRANSFORM_IDENTITY);
     return Error::None;
 }
@@ -938,8 +960,9 @@ Error HWC2On1Adapter::Display::setOutputBuffer(buffer_handle_t buffer,
         int32_t releaseFence)
 {
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] setOutputBuffer(%p, %d)", mId, buffer, releaseFence);
+#endif
     mOutputBuffer.setBuffer(buffer);
     mOutputBuffer.setFence(releaseFence);
     return Error::None;
@@ -988,8 +1011,9 @@ Error HWC2On1Adapter::Display::setPowerMode(PowerMode mode)
     }
     ALOGE_IF(error != 0, "setPowerMode: Failed to set power mode on HWC1 (%d)",
             error);
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] setPowerMode(%s)", mId, to_string(mode).c_str());
+#endif
     mPowerMode = mode;
     return Error::None;
 }
@@ -1026,9 +1050,9 @@ Error HWC2On1Adapter::Display::validate(uint32_t* outNumTypes,
         uint32_t* outNumRequests)
 {
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] Entering validate", mId);
-
+#endif
     if (!mChanges) {
         if (!mDevice.prepareAllDisplays()) {
             return Error::BadDisplay;
@@ -1037,12 +1061,14 @@ Error HWC2On1Adapter::Display::validate(uint32_t* outNumTypes,
 
     *outNumTypes = mChanges->getNumTypes();
     *outNumRequests = mChanges->getNumLayerRequests();
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] validate --> %u types, %u requests", mId, *outNumTypes,
             *outNumRequests);
     for (auto request : mChanges->getTypeChanges()) {
         ALOGV("Layer %" PRIu64 " --> %s", request.first,
                 to_string(request.second).c_str());
     }
+#endif
     return *outNumTypes > 0 ? Error::HasChanges : Error::None;
 }
 
@@ -1153,9 +1179,9 @@ static_assert(attributesMatch<HWC_DISPLAY_COLOR_TRANSFORM>(),
 void HWC2On1Adapter::Display::populateConfigs()
 {
     std::unique_lock<std::recursive_mutex> lock(mStateMutex);
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] populateConfigs", mId);
-
+#endif
     if (mHwc1Id == -1) {
         ALOGE("populateConfigs: HWC1 ID not set");
         return;
@@ -1208,9 +1234,11 @@ void HWC2On1Adapter::Display::populateConfigs()
 
         for (auto& existingConfig : mConfigs) {
             if (existingConfig->merge(*newConfig)) {
+#ifdef SUPERVERBOSE
                 ALOGV("Merged config %d with existing config %u: %s",
                         hwc1ConfigId, existingConfig->getId(),
                         existingConfig->toString().c_str());
+#endif
                 newConfig.reset();
                 break;
             }
@@ -1219,8 +1247,10 @@ void HWC2On1Adapter::Display::populateConfigs()
         // If it wasn't merged with any existing config, add it to the end
         if (newConfig) {
             newConfig->setId(static_cast<hwc2_config_t>(mConfigs.size()));
+#ifdef SUPERVERBOSE
             ALOGV("Found new config %u: %s", newConfig->getId(),
                     newConfig->toString().c_str());
+#endif
             mConfigs.emplace_back(std::move(newConfig));
         }
     }
@@ -1258,15 +1288,16 @@ bool HWC2On1Adapter::Display::prepare()
         ALOGE("[%" PRIu64 "] Attempted to prepare, but no config active", mId);
         return false;
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] Entering prepare", mId);
-
+#endif
     auto currentCount = mHwc1RequestedContents ?
             mHwc1RequestedContents->numHwLayers : 0;
     auto requiredCount = mLayers.size() + 1;
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "]   Requires %zd layers, %zd allocated in %p", mId,
             requiredCount, currentCount, mHwc1RequestedContents.get());
-
+#endif
     bool layerCountChanged = (currentCount != requiredCount);
     if (layerCountChanged) {
         reallocateHwc1Contents();
@@ -1373,7 +1404,9 @@ Error HWC2On1Adapter::Display::set(hwc_display_contents_1& hwcContents)
     for (size_t l = 0; l < numLayers - 1; ++l) {
         auto& layer = hwcContents.hwLayers[l];
         if (layer.compositionType == HWC_FRAMEBUFFER) {
+#ifdef SUPERVERBOSE
             ALOGV("Closing fence %d for layer %zd", layer.acquireFenceFd, l);
+#endif
             close(layer.acquireFenceFd);
             layer.acquireFenceFd = -1;
         }
@@ -1422,8 +1455,10 @@ void HWC2On1Adapter::Display::addReleaseFences(
         }
 
         Layer& layer = *mHwc1LayerMap[hwc1Id];
+#ifdef SUPERVERBOSE
         ALOGV("Adding release fence %d to layer %" PRIu64,
                 receivedLayer.releaseFenceFd, layer.getId());
+#endif
         layer.addReleaseFence(receivedLayer.releaseFenceFd);
     }
 }
@@ -1832,7 +1867,9 @@ void HWC2On1Adapter::Display::populateColorModes()
 void HWC2On1Adapter::Display::initializeActiveConfig()
 {
     if (mDevice.mHwc1Device->getActiveConfig == nullptr) {
+#ifdef SUPERVERBOSE
         ALOGV("getActiveConfig is null, choosing config 0");
+#endif
         mActiveConfig = mConfigs[0];
         mActiveColorMode = HAL_COLOR_MODE_NATIVE;
         return;
@@ -1843,8 +1880,10 @@ void HWC2On1Adapter::Display::initializeActiveConfig()
     if (activeConfig >= 0) {
         for (const auto& config : mConfigs) {
             if (config->hasHwc1Id(activeConfig)) {
+#ifdef SUPERVERBOSE
                 ALOGV("Setting active config to %d for HWC1 config %u",
                         config->getId(), activeConfig);
+#endif
                 mActiveConfig = config;
                 if (config->getColorModeForHwc1Id(activeConfig, &mActiveColorMode) != Error::None) {
                     // This should never happen since we checked for the config's presence before
@@ -1857,8 +1896,10 @@ void HWC2On1Adapter::Display::initializeActiveConfig()
             }
         }
         if (!mActiveConfig) {
+#ifdef SUPERVERBOSE
             ALOGV("Unable to find active HWC1 config %u, defaulting to "
                     "config 0", activeConfig);
+#endif
             mActiveConfig = mConfigs[0];
             mActiveColorMode = HAL_COLOR_MODE_NATIVE;
         }
@@ -1871,8 +1912,10 @@ void HWC2On1Adapter::Display::reallocateHwc1Contents()
     auto numLayers = mLayers.size() + 1;
     size_t size = sizeof(hwc_display_contents_1_t) +
             sizeof(hwc_layer_1_t) * numLayers;
+#ifdef SUPERVERBOSE
     ALOGV("[%" PRIu64 "] reallocateHwc1Contents creating %zd layer%s", mId,
             numLayers, numLayers != 1 ? "s" : "");
+#endif
     auto contents =
             static_cast<hwc_display_contents_1_t*>(std::calloc(size, 1));
     contents->numHwLayers = numLayers;
@@ -2001,7 +2044,9 @@ bool HWC2On1Adapter::SortLayersByZ::operator()(
 Error HWC2On1Adapter::Layer::setBuffer(buffer_handle_t buffer,
         int32_t acquireFence)
 {
+#ifdef SUPERVERBOSE
     ALOGV("Setting acquireFence to %d for layer %" PRIu64, acquireFence, mId);
+#endif
     mBuffer.setBuffer(buffer);
     mBuffer.setFence(acquireFence);
     return Error::None;
@@ -2102,7 +2147,9 @@ Error HWC2On1Adapter::Layer::setZ(uint32_t z)
 
 void HWC2On1Adapter::Layer::addReleaseFence(int fenceFd)
 {
+#ifdef SUPERVERBOSE
     ALOGV("addReleaseFence %d to layer %" PRIu64, fenceFd, mId);
+#endif
     mReleaseFence.add(fenceFd);
 }
 
@@ -2333,10 +2380,12 @@ void HWC2On1Adapter::Layer::applyCompositionType(hwc_layer_1_t& hwc1Layer,
                 hwc1Layer.flags |= HWC_SKIP_LAYER;
                 break;
         }
+#ifdef SUPERVERBOSE
         ALOGV("Layer %" PRIu64 " %s set to %d", mId,
                 to_string(mCompositionType.getPendingValue()).c_str(),
                 hwc1Layer.compositionType);
         ALOGV_IF(hwc1Layer.flags & HWC_SKIP_LAYER, "    and skipping");
+#endif
         mCompositionType.latch();
     }
 }
@@ -2345,7 +2394,9 @@ void HWC2On1Adapter::Layer::applyCompositionType(hwc_layer_1_t& hwc1Layer,
 
 void HWC2On1Adapter::populateCapabilities()
 {
+#ifdef SUPERVERBOSE
     ALOGV("populateCapabilities");
+#endif
     if (mHwc1MinorVersion >= 3U) {
         int supportedTypes = 0;
         auto result = mHwc1Device->query(mHwc1Device,
@@ -2394,8 +2445,9 @@ std::tuple<HWC2On1Adapter::Layer*, Error> HWC2On1Adapter::getLayer(
 
 void HWC2On1Adapter::populatePrimary()
 {
+#ifdef SUPERVERBOSE
     ALOGV("populatePrimary");
-
+#endif
     std::unique_lock<std::recursive_timed_mutex> lock(mStateMutex);
 
     auto display =
@@ -2463,21 +2515,24 @@ bool HWC2On1Adapter::prepareAllDisplays()
         if (!displayContents) {
             continue;
         }
-
+#ifdef SUPERVERBOSE
         ALOGV("Display %zd layers:", mHwc1Contents.size() - 1);
+#endif
         for (size_t l = 0; l < displayContents->numHwLayers; ++l) {
             auto& layer = displayContents->hwLayers[l];
             ALOGV("  %zd: %d", l, layer.compositionType);
         }
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("Calling HWC1 prepare");
+#endif
     {
         ATRACE_NAME("HWC1 prepare");
         mHwc1Device->prepare(mHwc1Device, mHwc1Contents.size(),
                 mHwc1Contents.data());
     }
 
+#ifdef SUPERVERBOSE
     for (size_t c = 0; c < mHwc1Contents.size(); ++c) {
         auto& contents = mHwc1Contents[c];
         if (!contents) {
@@ -2488,6 +2543,7 @@ bool HWC2On1Adapter::prepareAllDisplays()
             ALOGV("  %zd: %d", l, contents->hwLayers[l].compositionType);
         }
     }
+#endif
 
     // Return the received contents to their respective displays
     for (size_t hwc1Id = 0; hwc1Id < mHwc1Contents.size(); ++hwc1Id) {
@@ -2524,8 +2580,9 @@ Error HWC2On1Adapter::setAllDisplays()
             return error;
         }
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("Calling HWC1 set");
+#endif
     {
         ATRACE_NAME("HWC1 set");
         mHwc1Device->set(mHwc1Device, mHwc1Contents.size(),
@@ -2540,9 +2597,11 @@ Error HWC2On1Adapter::setAllDisplays()
 
         auto displayId = mHwc1DisplayMap[hwc1Id];
         auto& display = mDisplays[displayId];
+#ifdef SUPERVERBOSE
         auto retireFenceFd = mHwc1Contents[hwc1Id]->retireFenceFd;
         ALOGV("setAllDisplays: Adding retire fence %d to display %zd",
                 retireFenceFd, hwc1Id);
+#endif
         display->addRetireFence(mHwc1Contents[hwc1Id]->retireFenceFd);
         display->addReleaseFences(*mHwc1Contents[hwc1Id]);
     }
@@ -2552,8 +2611,9 @@ Error HWC2On1Adapter::setAllDisplays()
 
 void HWC2On1Adapter::hwc1Invalidate()
 {
+#ifdef SUPERVERBOSE
     ALOGV("Received hwc1Invalidate");
-
+#endif
     std::unique_lock<std::recursive_timed_mutex> lock(mStateMutex);
 
     // If the HWC2-side callback hasn't been registered yet, buffer this until
@@ -2580,8 +2640,9 @@ void HWC2On1Adapter::hwc1Invalidate()
 
 void HWC2On1Adapter::hwc1Vsync(int hwc1DisplayId, int64_t timestamp)
 {
+#ifdef SUPERVERBOSE
     ALOGV("Received hwc1Vsync(%d, %" PRId64 ")", hwc1DisplayId, timestamp);
-
+#endif
     std::unique_lock<std::recursive_timed_mutex> lock(mStateMutex);
 
     // If the HWC2-side callback hasn't been registered yet, buffer this until
@@ -2608,8 +2669,9 @@ void HWC2On1Adapter::hwc1Vsync(int hwc1DisplayId, int64_t timestamp)
 
 void HWC2On1Adapter::hwc1Hotplug(int hwc1DisplayId, int connected)
 {
+#ifdef SUPERVERBOSE
     ALOGV("Received hwc1Hotplug(%d, %d)", hwc1DisplayId, connected);
-
+#endif
     if (hwc1DisplayId != HWC_DISPLAY_EXTERNAL) {
         ALOGE("hwc1Hotplug: Received hotplug for non-external display");
         return;
