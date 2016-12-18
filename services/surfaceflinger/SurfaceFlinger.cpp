@@ -270,7 +270,9 @@ void SurfaceFlinger::destroyDisplay(const sp<IBinder>& display) {
 }
 
 void SurfaceFlinger::createBuiltinDisplayLocked(DisplayDevice::DisplayType type) {
+#ifdef SUPERVERBOSE
     ALOGV("createBuiltinDisplayLocked(%d)", type);
+#endif
     ALOGW_IF(mBuiltinDisplays[type],
             "Overwriting display token for display type %d", type);
     mBuiltinDisplays[type] = new BBinder();
@@ -504,7 +506,7 @@ void SurfaceFlinger::init() {
     // start boot animation
     startBootAnim();
 
-    ALOGV("Done initializing");
+    ALOGI("Done initializing");
 }
 
 void SurfaceFlinger::startBootAnim() {
@@ -872,7 +874,9 @@ void SurfaceFlinger::onVSyncReceived(int32_t type, nsecs_t timestamp) {
 }
 
 void SurfaceFlinger::onHotplugReceived(int32_t disp, bool connected) {
+#ifdef SUPERVERBOSE
     ALOGV("onHotplugReceived(%d, %s)", disp, connected ? "true" : "false");
+#endif
     if (disp == DisplayDevice::DISPLAY_PRIMARY) {
         Mutex::Autolock lock(mStateLock);
 
@@ -1033,7 +1037,9 @@ void SurfaceFlinger::doDebugFlashRegions()
 void SurfaceFlinger::preComposition()
 {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("preComposition");
+#endif
 
     bool needExtraInvalidate = false;
     const LayerVector& layers(mDrawingState.layersSortedByZ);
@@ -1055,7 +1061,9 @@ void SurfaceFlinger::postComposition(nsecs_t /*refreshStartTime*/)
 #endif
 {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("postComposition");
+#endif
 
     const LayerVector& layers(mDrawingState.layersSortedByZ);
     const size_t count = layers.size();
@@ -1123,8 +1131,9 @@ void SurfaceFlinger::postComposition(nsecs_t /*refreshStartTime*/)
 
 void SurfaceFlinger::rebuildLayerStacks() {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("rebuildLayerStacks");
-
+#endif
     // rebuild the visible layer list per screen
     if (CC_UNLIKELY(mVisibleRegionsDirty)) {
         ATRACE_CALL();
@@ -1174,8 +1183,9 @@ void SurfaceFlinger::rebuildLayerStacks() {
 
 void SurfaceFlinger::setUpHWComposer() {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("setUpHWComposer");
-
+#endif
     for (size_t dpy=0 ; dpy<mDisplays.size() ; dpy++) {
         bool dirty = !mDisplays[dpy]->getDirtyRegion(false).isEmpty();
         bool empty = mDisplays[dpy]->getVisibleLayersSortedByZ().size() == 0;
@@ -1190,14 +1200,14 @@ void SurfaceFlinger::setUpHWComposer() {
         // - When a display is created with a private layer stack, we won't
         //   emit any black frames until a layer is added to the layer stack.
         bool mustRecompose = dirty && !(empty && wasEmpty);
-
+#ifdef SUPERVERBOSE
         ALOGV_IF(mDisplays[dpy]->getDisplayType() == DisplayDevice::DISPLAY_VIRTUAL,
                 "dpy[%zu]: %s composition (%sdirty %sempty %swasEmpty)", dpy,
                 mustRecompose ? "doing" : "skipping",
                 dirty ? "+" : "-",
                 empty ? "+" : "-",
                 wasEmpty ? "+" : "-");
-
+#endif
         mDisplays[dpy]->beginFrame(mustRecompose);
 
         if (mustRecompose) {
@@ -1258,7 +1268,9 @@ void SurfaceFlinger::setUpHWComposer() {
 
 void SurfaceFlinger::doComposition() {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("doComposition");
+#endif
 
     const bool repaintEverything = android_atomic_and(0, &mRepaintEverything);
     for (size_t dpy=0 ; dpy<mDisplays.size() ; dpy++) {
@@ -1283,8 +1295,9 @@ void SurfaceFlinger::doComposition() {
 void SurfaceFlinger::postFramebuffer()
 {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("postFramebuffer");
-
+#endif
     const nsecs_t now = systemTime();
     mDebugInSwapBuffers = now;
 
@@ -1324,7 +1337,9 @@ void SurfaceFlinger::postFramebuffer()
     if (flipCount % LOG_FRAME_STATS_PERIOD == 0) {
         logFrameStats();
     }
+#ifdef SUPERVERBOSE
     ALOGV_IF(mFrameRateHelper.update(), "FPS: %d", mFrameRateHelper.get());
+#endif
 }
 
 void SurfaceFlinger::handleTransaction(uint32_t transactionFlags)
@@ -1684,8 +1699,9 @@ void SurfaceFlinger::computeVisibleRegions(
         Region& outDirtyRegion, Region& outOpaqueRegion)
 {
     ATRACE_CALL();
+#ifdef SUPERVERBOSE
     ALOGV("computeVisibleRegions");
-
+#endif
     Region aboveOpaqueLayers;
     Region aboveCoveredLayers;
     Region dirty;
@@ -1827,8 +1843,9 @@ void SurfaceFlinger::invalidateLayerStack(uint32_t layerStack,
 
 bool SurfaceFlinger::handlePageFlip()
 {
+#ifdef SUPERVERBOSE
     ALOGV("handlePageFlip");
-
+#endif
     Region dirtyRegion;
 
     bool visibleRegions = false;
@@ -1892,11 +1909,14 @@ void SurfaceFlinger::doDisplayComposition(const sp<const DisplayDevice>& hw,
     // 2) There is work to be done (the dirty region isn't empty)
     bool isHwcDisplay = hw->getHwcDisplayId() >= 0;
     if (!isHwcDisplay && inDirtyRegion.isEmpty()) {
+#ifdef SUPERVERBOSE
         ALOGV("Skipping display composition");
+#endif
         return;
     }
-
+#ifdef SUPERVERBOSE
     ALOGV("doDisplayComposition");
+#endif
 
     Region dirtyRegion(inDirtyRegion);
 
@@ -1949,13 +1969,16 @@ void SurfaceFlinger::doDisplayComposition(const sp<const DisplayDevice>& hw,
 bool SurfaceFlinger::doComposeSurfaces(
         const sp<const DisplayDevice>& displayDevice, const Region& dirty)
 {
+#ifdef SUPERVERBOSE
     ALOGV("doComposeSurfaces");
+#endif
 
     const auto hwcId = displayDevice->getHwcDisplayId();
     bool hasClientComposition = mHwc->hasClientComposition(hwcId);
     if (hasClientComposition) {
+#ifdef SUPERVERBOSE
         ALOGV("hasClientComposition");
-
+#endif
         if (!displayDevice->makeCurrent(mEGLDisplay, mEGLContext)) {
             ALOGW("DisplayDevice::makeCurrent failed. Aborting surface composition for display %s",
                   displayDevice->getDisplayName().string());
@@ -2020,8 +2043,9 @@ bool SurfaceFlinger::doComposeSurfaces(
     /*
      * and then, render the layers targeted at the framebuffer
      */
-
+#ifdef SUPERVERBOSE
     ALOGV("Rendering client layers");
+#endif
     const Transform& displayTransform = displayDevice->getTransform();
     if (hwcId >= 0) {
         // we're using h/w composer
@@ -2029,9 +2053,11 @@ bool SurfaceFlinger::doComposeSurfaces(
         for (auto& layer : displayDevice->getVisibleLayersSortedByZ()) {
             const Region clip(dirty.intersect(
                     displayTransform.transform(layer->visibleRegion)));
+#ifdef SUPERVERBOSE
             ALOGV("Layer: %s", layer->getName().string());
             ALOGV("  Composition type: %s",
                     to_string(layer->getCompositionType(hwcId)).c_str());
+#endif
             if (!clip.isEmpty()) {
                 switch (layer->getCompositionType(hwcId)) {
                     case HWC2::Composition::Cursor:
@@ -2054,8 +2080,10 @@ bool SurfaceFlinger::doComposeSurfaces(
                     default:
                         break;
                 }
+#ifdef SUPERVERBOSE
             } else {
                 ALOGV("  Skipping for empty clip");
+#endif
             }
             firstLayer = false;
         }
@@ -2298,17 +2326,22 @@ uint32_t SurfaceFlinger::setClientStateLocked(
             }
         }
         if (what & layer_state_t::eBlurChanged) {
+#ifdef SUPERVERBOSE
             ALOGV("eBlurChanged");
+#endif
             if (layer->setBlur(uint8_t(255.0f*s.blur+0.5f))) {
                 flags |= eTraversalNeeded;
             }
         }
         if (what & layer_state_t::eBlurMaskSurfaceChanged) {
+#ifdef SUPERVERBOSE
             ALOGV("eBlurMaskSurfaceChanged");
+#endif
             sp<Layer> maskLayer = 0;
             if (s.blurMaskSurface != 0) {
                 maskLayer = client->getLayerUser(s.blurMaskSurface);
             }
+#ifdef SUPERVERBOSE
             if (maskLayer == 0) {
                 ALOGV("eBlurMaskSurfaceChanged. maskLayer == 0");
             } else {
@@ -2318,6 +2351,12 @@ uint32_t SurfaceFlinger::setClientStateLocked(
                     maskLayer = 0;
                 }
             }
+#else
+            if(maskLayer != 0 && maskLayer->isBlurLayer()) {
+                ALOGE("Blur layer can not be used as blur mask surface");
+                maskLayer = 0;
+            }
+#endif
             if (layer->setBlurMaskLayer(maskLayer)) {
                 flags |= eTraversalNeeded;
             }

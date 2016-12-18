@@ -115,7 +115,10 @@ LayerBlur::~LayerBlur() {
 void LayerBlur::onDraw(const sp<const DisplayDevice>& hw, const Region& /*clip*/,
         bool useIdentityTransform)
 {
+#ifdef SUPERVERBOSE
     clock_t t1 = clock();
+#endif
+
     const ScopedTrace traceTotal(ATRACE_TAG, "Blur.onDraw");
 
     const Layer::State& s(getDrawingState());
@@ -205,9 +208,10 @@ void LayerBlur::onDraw(const sp<const DisplayDevice>& hw, const Region& /*clip*/
             );
 
     mLastFrameSequence = mFlinger->mActiveFrameSequence;
-
+#ifdef SUPERVERBOSE
     clock_t t2 = clock();
     ALOGV("onDraw took %d ms", (int)(1000*(t2-t1)/CLOCKS_PER_SEC));
+#endif
 }
 
 

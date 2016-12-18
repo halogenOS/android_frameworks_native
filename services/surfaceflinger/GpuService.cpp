@@ -67,7 +67,9 @@ GpuService::GpuService() {}
 status_t GpuService::shellCommand(int /*in*/, int out, int err,
         Vector<String16>& args)
 {
+#ifdef SUPERVERBOSE
     ALOGV("GpuService::shellCommand");
+#endif
     for (size_t i = 0, n = args.size(); i < n; i++)
         ALOGV("  arg[%zu]: '%s'", i, String8(args[i]).string());
 
