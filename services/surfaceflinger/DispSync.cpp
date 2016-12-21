@@ -417,7 +417,7 @@ DispSync::DispSync(const char* name) :
 #ifndef SUPERVERBOSE
     (void)mName;
 #endif
-    mThread->run("DispSync", PRIORITY_URGENT_DISPLAY + PRIORITY_MORE_FAVORABLE);
+    mThread->run("DispSync", PRIORITY_REALTIME);
     // set DispSync to SCHED_FIFO to minimize jitter
     struct sched_param param = {0};
     param.sched_priority = 2;
