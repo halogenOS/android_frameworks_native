@@ -417,7 +417,7 @@ DispSync::DispSync(const char* name) :
 #ifndef SUPERVERBOSE
     (void)mName;
 #endif
-    mThread->run("DispSync", PRIORITY_URGENT_DISPLAY + PRIORITY_MORE_FAVORABLE);
+    mThread->run("DispSync", PRIORITY_REALTIME);
     android_set_rt_ioprio(mThread->getTid(), 1);
 
     reset();
