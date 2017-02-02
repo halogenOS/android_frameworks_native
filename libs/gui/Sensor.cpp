@@ -169,9 +169,16 @@ Sensor::Sensor(struct sensor_t const& hwSensor, const uuid_t& uuid, int halVersi
     case SENSOR_TYPE_SIGNIFICANT_MOTION:
         mStringType = SENSOR_STRING_TYPE_SIGNIFICANT_MOTION;
         mFlags |= SENSOR_FLAG_ONE_SHOT_MODE;
+#ifndef SENSORS_PREVENT_SIGNIFICANT_MOTIION_WAKE
         if (halVersion < SENSORS_DEVICE_API_VERSION_1_3) {
             mFlags |= SENSOR_FLAG_WAKE_UP;
         }
+#else
+        if ((mFlags & SENSOR_FLAG_WAKE_UP) != 0) {
+            // Remove the wake up flag
+            mFlags &= ~SENSOR_FLAG_WAKE_UP;
+        }
+#endif
         break;
     case SENSOR_TYPE_STEP_COUNTER:
         mStringType = SENSOR_STRING_TYPE_STEP_COUNTER;
