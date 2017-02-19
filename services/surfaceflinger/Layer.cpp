@@ -38,12 +38,6 @@
 #include <utils/StopWatch.h>
 #include <utils/Trace.h>
 
-#ifdef QTI_BSP
-#include <gralloc_priv.h>
-#include <qdMetaData.h>
-#endif
-
-
 #include <ui/GraphicBuffer.h>
 #include <ui/PixelFormat.h>
 
@@ -963,7 +957,8 @@ void Layer::onDraw(const sp<const DisplayDevice>& hw, const Region& clip,
         // Go ahead and draw the buffer anyway; no matter what we do the screen
         // is probably going to have something visibly wrong.
     }
-    bool blackOutLayer = isProtected() || (isSecure() && !hw->isSecure()) || isHDRLayer();
+
+    bool blackOutLayer = isProtected() || (isSecure() && !hw->isSecure());
 
     RenderEngine& engine(mFlinger->getRenderEngine());
 

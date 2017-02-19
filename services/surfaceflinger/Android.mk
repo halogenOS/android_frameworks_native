@@ -177,11 +177,6 @@ ifeq ($(TARGET_USES_QCOM_BSP), true)
     ExSurfaceFlinger/ExHWComposer.cpp
 endif
 
-ifeq ($(BOARD_HAS_COLOR_METADATA),true)
-  LOCAL_CFLAGS += -DUSE_COLOR_METADATA
-  LOCAL_CPPFLAGS += -DUSE_COLOR_METADATA
-endif
-
 LOCAL_MODULE := libsurfaceflinger
 
 LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code -O3
