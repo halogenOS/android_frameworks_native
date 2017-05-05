@@ -485,6 +485,7 @@ void egl_window_surface_v2_t::copyBlt(
     }
 }
 
+EGLBoolean egl_window_surface_v2_t::swapBuffers() __attribute__((__optimize__("O3")));
 EGLBoolean egl_window_surface_v2_t::swapBuffers()
 {
     if (!buffer) {
