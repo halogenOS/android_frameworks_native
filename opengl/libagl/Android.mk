@@ -26,6 +26,10 @@ LOCAL_CFLAGS += -DLOG_TAG=\"libagl\"
 LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
 LOCAL_CFLAGS += -fvisibility=hidden
 
+ifeq ($(TARGET_MORE_OPTIMIZATION),true)
+LOCAL_CFLAGS += -O3
+endif
+
 LOCAL_SHARED_LIBRARIES := libcutils libhardware libutils liblog libpixelflinger libETC1 libui
 
 LOCAL_SRC_FILES_arm += fixed_asm.S iterators.S
