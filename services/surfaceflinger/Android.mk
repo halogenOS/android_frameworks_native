@@ -41,6 +41,7 @@ LOCAL_SRC_FILES := \
     DisplayUtils.cpp
 
 LOCAL_C_INCLUDES := \
+	$(TARGET_SPECIFIC_HEADER_PATH)/include \
 	frameworks/native/vulkan/include \
 	external/vulkan-validation-layers/libs/vkjson
 
