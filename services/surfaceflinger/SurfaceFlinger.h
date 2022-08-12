@@ -1421,6 +1421,7 @@ private:
     scheduler::PresentLatencyTracker mPresentLatencyTracker GUARDED_BY(kMainThreadContext);
 
     bool mLumaSampling = true;
+    bool mForceHwcBrightness = false;
     sp<RegionSamplingThread> mRegionSamplingThread;
     sp<FpsReporter> mFpsReporter;
     sp<TunnelModeEnabledReporter> mTunnelModeEnabledReporter;
