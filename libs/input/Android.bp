@@ -42,6 +42,7 @@ cc_library {
         "-Wextra",
         "-Werror",
         "-Wno-unused-parameter",
+	"-O3",
     ],
     srcs: [
         "Input.cpp",
