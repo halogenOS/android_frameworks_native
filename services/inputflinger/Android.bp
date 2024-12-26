@@ -36,6 +36,7 @@ cc_defaults {
         "-Wextra",
         "-Werror",
         "-Wno-unused-parameter",
+        "-Wno-nan-infinity-disabled",
         "-Wthread-safety",
         "-Wshadow",
         "-Wshadow-field-in-constructor-modified",
