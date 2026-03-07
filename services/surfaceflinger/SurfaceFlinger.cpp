@@ -26,6 +26,8 @@
 #include "SurfaceFlinger.h"
 
 #include <aidl/android/hardware/power/Boost.h>
+#include <aidl/custom/hardware/display/ltpo/ILtpoControl.h>
+#include <android/binder_manager.h>
 #include <android-base/logging.h>
 #include <android-base/parseint.h>
 #include <android-base/properties.h>
@@ -2476,6 +2478,7 @@ status_t SurfaceFlinger::notifyPowerBoost(int32_t boostId) {
 
     if (powerBoost == Boost::INTERACTION) {
         mScheduler->onTouchHint();
+        if (mLtpoControl) setLtpoTargetHz(120);
     }
 
     return NO_ERROR;
@@ -8030,6 +8033,57 @@ void SurfaceFlinger::vrrDisplayIdle(PhysicalDisplayId displayId, bool idle) {
             }
         }
     }));
+}
+
+void SurfaceFlinger::onContentIdle(bool idle) {
+    setLtpoTargetHz(idle ? 1 : 120);
+}
+
+void SurfaceFlinger::onContentFrameRate(Fps fps) {
+    setLtpoTargetHz(static_cast<int32_t>(fps.getValue()));
+}
+
+bool SurfaceFlinger::isLtpoActive() const {
+    return mLtpoControl != nullptr;
+}
+
+void SurfaceFlinger::setLtpoTargetHz(int32_t targetHz) {
+    if (targetHz <= 0) targetHz = 1;
+
+    // Deduplicate
+    if (targetHz == mLastLtpoTargetHz) return;
+
+    // Lazy discovery: the LTPO HAL may start/stop at any time via property toggle.
+    if (!mLtpoControl) {
+        using aidl::custom::hardware::display::ltpo::ILtpoControl;
+        const std::string instance =
+                std::string(ILtpoControl::descriptor) + "/default";
+        auto binder = ndk::SpAIBinder(
+                AServiceManager_checkService(instance.c_str()));
+        if (binder.get()) {
+            mLtpoControl = ILtpoControl::fromBinder(binder);
+            ALOGI("LTPO Control HAL discovered");
+        }
+    }
+    if (mLtpoControl) {
+        int32_t actualHz = 0;
+        auto status = mLtpoControl->setTargetHz(targetHz, &actualHz);
+        if (!status.isOk()) {
+            mLtpoControl = nullptr;
+            return;
+        }
+        mLastLtpoTargetHz = targetHz;
+        // Update refresh rate overlay to reflect actual panel Hz
+        const Fps rate = Fps::fromValue(actualHz);
+        static_cast<void>(mScheduler->schedule([=, this] {
+            Mutex::Autolock lock(mStateLock);
+            for (const auto& [_, display] : mDisplays) {
+                if (display->isRefreshRateOverlayEnabled()) {
+                    display->updateRefreshRateOverlayRate(rate, rate);
+                }
+            }
+        }));
+    }
 }
 
 void SurfaceFlinger::enableLayerCachingTexturePool(PhysicalDisplayId displayId, bool enable) {

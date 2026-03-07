@@ -108,6 +108,13 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "surfaceflinger_custom_hal_deps",
+    shared_libs: [
+        "custom.hardware.display.ltpo-V2-ndk",
+    ],
+}
+
+cc_defaults {
     name: "libsurfaceflinger_defaults",
     defaults: [
         "android.hardware.graphics.composer3-ndk_shared",
@@ -116,6 +123,7 @@ cc_defaults {
         "libsurfaceflinger_proto_deps",
         "libtimestats_deps",
         "poweradvisor_deps",
+        "surfaceflinger_custom_hal_deps",
         "surfaceflinger_defaults",
     ],
     cflags: [
