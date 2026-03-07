@@ -1067,6 +1067,21 @@ void Scheduler::chooseRefreshRateForContent(
     SFTRACE_CALL();
 
     LayerHistory::Summary summary = mLayerHistory.summarize(systemTime());
+
+    // Forward max content frame rate to LTPO HAL for VRR/SFM control.
+    // Idle (empty summary) is handled separately by the idle timer callback.
+    if (mSchedulerCallback.isLtpoActive()) {
+        Fps maxContentFps = Fps::fromValue(0);
+        for (const auto& req : summary) {
+            if (isStrictlyLess(maxContentFps, req.desiredRefreshRate)) {
+                maxContentFps = req.desiredRefreshRate;
+            }
+        }
+        if (maxContentFps.getValue() > 0) {
+            mSchedulerCallback.onContentFrameRate(maxContentFps);
+        }
+    }
+
     applyPolicy(&Policy::contentRequirements, std::move(summary));
 
     if (updateAttachedChoreographer) {
@@ -1203,6 +1218,7 @@ void Scheduler::kernelIdleTimerCallback(PhysicalDisplayId displayId, TimerState 
 
 void Scheduler::idleTimerCallback(PhysicalDisplayId displayId, TimerState state) {
     applyPolicy(&Policy::idleTimers, state, displayId);
+    mSchedulerCallback.onContentIdle(state == TimerState::Expired);
     SFTRACE_INT("ExpiredIdleTimer", static_cast<int>(state));
 }
 

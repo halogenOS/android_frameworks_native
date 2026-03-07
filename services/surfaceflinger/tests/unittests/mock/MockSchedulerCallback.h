@@ -32,6 +32,9 @@ struct SchedulerCallback final : ISchedulerCallback {
     MOCK_METHOD(void, onCommitNotComposited, (), (override));
     MOCK_METHOD(void, vrrDisplayIdle, (PhysicalDisplayId, bool), (override));
     MOCK_METHOD(void, enableLayerCachingTexturePool, (PhysicalDisplayId, bool), (override));
+    MOCK_METHOD(void, onContentIdle, (bool), (override));
+    MOCK_METHOD(void, onContentFrameRate, (Fps), (override));
+    MOCK_METHOD(bool, isLtpoActive, (), (const, override));
 };
 
 struct NoOpSchedulerCallback final : ISchedulerCallback {
@@ -43,6 +46,9 @@ struct NoOpSchedulerCallback final : ISchedulerCallback {
     void onCommitNotComposited() override {}
     void vrrDisplayIdle(PhysicalDisplayId, bool) override {}
     void enableLayerCachingTexturePool(PhysicalDisplayId, bool) override {}
+    void onContentIdle(bool) override {}
+    void onContentFrameRate(Fps) override {}
+    bool isLtpoActive() const override { return false; }
 };
 
 } // namespace android::scheduler::mock

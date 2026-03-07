@@ -21,6 +21,10 @@
  * NOTE: Make sure this file doesn't include  anything from <gl/ > or <gl2/ >
  */
 
+namespace aidl::custom::hardware::display::ltpo {
+class ILtpoControl;
+}  // namespace aidl::custom::hardware::display::ltpo
+
 #include <android-base/stringprintf.h>
 #include <android-base/strings.h>
 #include <android-base/thread_annotations.h>
@@ -700,6 +704,9 @@ private:
     void vrrDisplayIdle(PhysicalDisplayId displayId, bool idle) override;
     void enableLayerCachingTexturePool(PhysicalDisplayId, bool enable) override
             REQUIRES(kMainThreadContext);
+    void onContentIdle(bool idle) override;
+    void onContentFrameRate(Fps fps) override;
+    bool isLtpoActive() const override;
 
     // ICEPowerCallback overrides:
     void notifyCpuLoadUp() override;
@@ -710,6 +717,11 @@ private:
     // configured and what value to use as the timeout.
     std::pair<std::optional<KernelIdleTimerController>, std::chrono::milliseconds>
             getKernelIdleTimerProperties(PhysicalDisplayId) REQUIRES(mStateLock);
+
+    // LTPO Control HAL for skip frame mode (null if device has no LTPO HAL)
+    void setLtpoTargetHz(int32_t targetHz);
+    std::shared_ptr<aidl::custom::hardware::display::ltpo::ILtpoControl> mLtpoControl;
+    int32_t mLastLtpoTargetHz = 0;
 
     // Show spinner with refresh rate overlay
     bool mRefreshRateOverlaySpinner = false;

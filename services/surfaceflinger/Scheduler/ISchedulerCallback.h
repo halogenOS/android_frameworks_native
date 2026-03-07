@@ -34,6 +34,9 @@ struct ISchedulerCallback {
     virtual void onCommitNotComposited() = 0;
     virtual void vrrDisplayIdle(PhysicalDisplayId, bool idle) = 0;
     virtual void enableLayerCachingTexturePool(PhysicalDisplayId, bool enable) = 0;
+    virtual void onContentIdle(bool idle) = 0;
+    virtual void onContentFrameRate(Fps fps) = 0;
+    virtual bool isLtpoActive() const = 0;
 
 protected:
     ~ISchedulerCallback() = default;
