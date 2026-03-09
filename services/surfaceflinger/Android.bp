@@ -110,6 +110,7 @@ cc_defaults {
 cc_defaults {
     name: "surfaceflinger_custom_hal_deps",
     shared_libs: [
+        "custom.hardware.biometrics.fingerprint.udfps-V1-ndk",
         "custom.hardware.display.ltpo-V2-ndk",
     ],
 }

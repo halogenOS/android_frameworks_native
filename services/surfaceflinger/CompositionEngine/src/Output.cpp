@@ -1031,11 +1031,12 @@ compositionengine::OutputLayer* Output::findLayerRequestingBackgroundComposition
             layerRequestingBgComposition = layer;
         }
 
-        // If the next layer is the Udfps touched layer, enable client composition for it
-        // because that somehow leads to the Udfps touched layer getting device composition
-        // consistently.
-        if ((nextLayer != nullptr && layerRequestingBgComposition == nullptr) &&
-            (strstr(nextLayer->getLayerFE().getDebugName(), UDFPS_TOUCHED_LAYER_NAME) != nullptr)) {
+        // Qualcomm's libsdmextension may reassign the UDFPS touched layer to
+        // client composition, preventing the custom z-order bits from reaching
+        // the DRM driver.  Marking the layer directly beneath it as requiring
+        // background composition keeps the touched layer on the device path.
+        if (nextLayer && !layerRequestingBgComposition &&
+            strstr(nextLayer->getLayerFE().getDebugName(), UDFPS_TOUCHED_LAYER_NAME)) {
             layerRequestingBgComposition = layer;
             break;
         }
