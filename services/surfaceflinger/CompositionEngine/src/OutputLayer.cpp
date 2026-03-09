@@ -19,6 +19,7 @@
 #include <compositionengine/DisplayColorProfile.h>
 #include <compositionengine/LayerFECompositionState.h>
 #include <compositionengine/Output.h>
+#include <compositionengine/UdfpsExtension.h>
 #include <compositionengine/impl/HwcBufferCache.h>
 #include <compositionengine/impl/OutputCompositionState.h>
 #include <compositionengine/impl/OutputLayer.h>
@@ -555,7 +556,21 @@ void OutputLayer::writeOutputDependentGeometryStateToHWC(HWC2::Layer* hwcLayer,
               sourceCrop.bottom, to_string(error).c_str(), static_cast<int32_t>(error));
     }
 
-    if (auto error = hwcLayer->setZOrder(z); error != hal::Error::NONE) {
+    auto& udfps = compositionengine::UdfpsExtensionClient::get();
+    const char* name = getLayerFE().getDebugName();
+    uint32_t effectiveZ = z;
+
+    if (strstr(name, UDFPS_TOUCHED_LAYER_NAME)) {
+        effectiveZ = udfps.getUdfpsZOrder(z, true);
+    } else if (!strncmp(name, UDFPS_LAYER_NAME, strlen(UDFPS_LAYER_NAME)) ||
+               !strncmp(name, UDFPS_BIOMETRIC_PROMPT_LAYER_NAME,
+                        strlen(UDFPS_BIOMETRIC_PROMPT_LAYER_NAME))) {
+        effectiveZ = udfps.getUdfpsZOrder(z, false);
+    } else if (!strncmp(name, UDFPS_DIM_LAYER_NAME, strlen(UDFPS_DIM_LAYER_NAME))) {
+        effectiveZ = udfps.getUdfpsDimZOrder(z);
+    }
+
+    if (auto error = hwcLayer->setZOrder(effectiveZ); error != hal::Error::NONE) {
         ALOGE("[%s] Failed to set Z %u: %s (%d)", getLayerFE().getDebugName(), z,
               to_string(error).c_str(), static_cast<int32_t>(error));
     }
