@@ -918,15 +918,11 @@ renderengine::RenderEngine::BlurAlgorithm chooseBlurAlgorithm(bool supportsBlur)
         return renderengine::RenderEngine::BlurAlgorithm::KawaseDualFilter;
     } else if (algorithm == "kawase2_fix_aliasing") {
         return renderengine::RenderEngine::BlurAlgorithm::KawaseDualFilterV2;
+    } else if (algorithm == "frosted") {
+        return renderengine::RenderEngine::BlurAlgorithm::FrostedDisplacement;
     } else {
-        if (FlagManager::getInstance().window_blur_kawase2()) {
-            if (FlagManager::getInstance().window_blur_kawase2_fix_aliasing()) {
-                return renderengine::RenderEngine::BlurAlgorithm::KawaseDualFilterV2;
-            } else {
-                return renderengine::RenderEngine::BlurAlgorithm::KawaseDualFilter;
-            }
-        }
-        return renderengine::RenderEngine::BlurAlgorithm::Kawase;
+        // Default to frosted displacement — cheaper than Kawase with similar visual quality
+        return renderengine::RenderEngine::BlurAlgorithm::FrostedDisplacement;
     }
 }
 

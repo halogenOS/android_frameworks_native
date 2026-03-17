@@ -161,8 +161,9 @@ public:
         Kawase,
         KawaseDualFilter,
         KawaseDualFilterV2,
+        FrostedDisplacement,
 
-        ftl_last = KawaseDualFilterV2
+        ftl_last = FrostedDisplacement
     };
 
     static std::unique_ptr<RenderEngine> create(const RenderEngineCreationArgs& args);

@@ -38,6 +38,7 @@ X(BoxShadowEffect,                                          20)
  // pipeline descriptions from older builds.
  //
  // To preserve compatibility, always add new effects to the end.
+X(FrostedDisplacementEffect,                                21)
 
 #undef X
 #undef Y
