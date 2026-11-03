@@ -1131,6 +1131,9 @@ void SurfaceFlinger::initBootProperties() {
         // Reset and (if needed) start BootAnimation.
         property_set("service.bootanim.exit", "0");
         property_set("service.bootanim.progress", "0");
+        // A restart of SurfaceFlinger leaves the reports of the system_server that ran before it.
+        property_set("service.bootanim.stage", "");
+        property_set("service.bootanim.step", "0");
         property_set("ctl.start", "bootanim");
     }
 }
